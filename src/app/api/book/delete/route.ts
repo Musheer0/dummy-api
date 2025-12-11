@@ -29,10 +29,10 @@ export async function DELETE(req: Request) {
     const id = url.searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { success: false, message: "Booking ID is required" },
-        { status: 400 }
-      );
+     return NextResponse.json({
+      success: true,
+      message: "Booking deleted successfully",
+    });
     }
 
     let bookings = readBookings();
