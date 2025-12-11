@@ -58,14 +58,50 @@ export async function GET(req: Request) {
 }
 
 // ===============================
-// POST HANDLER (CREATE + EDIT)
+// POST HANDLER (QUERY MODES)
 // ===============================
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     let bookings = readBookings();
 
-    // EDIT MODE
+    // QUERY MODE: all
+    if (body.mode === "all") {
+      return NextResponse.json({
+        success: true,
+        count: bookings.length,
+        bookings,
+      });
+    }
+
+    // QUERY MODE: byPhone
+    if (body.mode === "byPhone" && body.phone) {
+      const filtered = bookings.filter(
+        (b: any) => b.phone_number === body.phone
+      );
+      return NextResponse.json({
+        success: true,
+        count: filtered.length,
+        bookings: filtered,
+      });
+    }
+
+    // QUERY MODE: byId
+    if (body.mode === "byId" && body.id) {
+      const booking = bookings.find((b: any) => b.id === body.id);
+      if (!booking) {
+        return NextResponse.json(
+          { success: false, message: "Booking not found" },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        booking,
+      });
+    }
+
+    // EDIT MODE (if id is provided without mode)
     if (body.id) {
       const idx = bookings.findIndex((b: any) => b.id === body.id);
       if (idx === -1) {
