@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { randomUUID } from "crypto";
 import {
   getAllBookings,
@@ -8,16 +8,36 @@ import {
   updateBooking,
 } from "@/lib/redis";
 
-// ===============================
-// GET HANDLER (ALL IN ONE)
-// ===============================
-export async function GET(req: Request) {
-  try {
-    const url = new URL(req.url);
-    const id = url.searchParams.get("id");
-    const phone = url.searchParams.get("phone");
+// -------------------------------------
+// ⭐ Helper: read from URL OR body
+// -------------------------------------
+async function getParams(req: NextRequest) {
+  const url = new URL(req.url);
 
-    // --- Get by ID ---
+  // URL values
+  let id = url.searchParams.get("id");
+  let phone = url.searchParams.get("phone");
+
+  // Body values (if provided)
+  let body: any = {};
+  try {
+    body = await req.json();
+  } catch (_) {}
+
+  id ||= body.id;
+  phone ||= body.phone;
+
+  return { id, phone, body };
+}
+
+// ===============================
+// GET HANDLER
+// ===============================
+export async function GET(req: NextRequest) {
+  try {
+    const { id, phone } = await getParams(req);
+
+    // Get by ID
     if (id) {
       const booking = await getBookingById(id);
       if (!booking) {
@@ -29,7 +49,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: true, booking });
     }
 
-    // --- Get by phone ---
+    // Get by phone
     if (phone) {
       const filtered = await getBookingsByPhone(phone);
       return NextResponse.json({
@@ -39,7 +59,7 @@ export async function GET(req: Request) {
       });
     }
 
-    // --- Return all ---
+    // Get all
     const bookings = await getAllBookings();
     return NextResponse.json({
       success: true,
@@ -56,15 +76,15 @@ export async function GET(req: Request) {
 }
 
 // ===============================
-// POST HANDLER (QUERY MODES)
+// POST HANDLER
 // ===============================
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const bookings = await getAllBookings();
+    const { id, phone, body } = await getParams(req);
 
-    // QUERY MODE: all
+    // MODE: all
     if (body.mode === "all") {
+      const bookings = await getAllBookings();
       return NextResponse.json({
         success: true,
         count: bookings.length,
@@ -72,9 +92,9 @@ export async function POST(req: Request) {
       });
     }
 
-    // QUERY MODE: byPhone
-    if (body.mode === "byPhone" && body.phone) {
-      const filtered = await getBookingsByPhone(body.phone);
+    // MODE: byPhone
+    if (body.mode === "byPhone" && phone) {
+      const filtered = await getBookingsByPhone(phone);
       return NextResponse.json({
         success: true,
         count: filtered.length,
@@ -82,24 +102,22 @@ export async function POST(req: Request) {
       });
     }
 
-    // QUERY MODE: byId
-    if (body.mode === "byId" && body.id) {
-      const booking = await getBookingById(body.id);
+    // MODE: byId
+    if (body.mode === "byId" && id) {
+      const booking = await getBookingById(id);
       if (!booking) {
         return NextResponse.json(
           { success: false, message: "Booking not found" },
           { status: 404 }
         );
       }
-      return NextResponse.json({
-        success: true,
-        booking,
-      });
+      return NextResponse.json({ success: true, booking });
     }
 
-    // EDIT MODE (if id is provided without mode)
-    if (body.id) {
-      const updated = await updateBooking(body.id, body);
+    // UPDATE mode (if ID exists)
+    if (id) {
+      const updated = await updateBooking(id, body);
+
       if (!updated) {
         return NextResponse.json(
           { success: false, message: "Booking not found for update" },
@@ -114,7 +132,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // CREATE MODE
+    // CREATE mode
     const newBooking = {
       id: randomUUID(),
       ...body,
