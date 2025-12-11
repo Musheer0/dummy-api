@@ -1,23 +1,10 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { getAllBookings } from "@/lib/redis";
 import { LABOURS } from "../../labours/all/route";
-
-const bookingsFilePath = path.join(process.cwd(), "data", "bookings.json");
-
-function readBookings() {
-  if (!fs.existsSync(bookingsFilePath)) return [];
-  try {
-    const raw = fs.readFileSync(bookingsFilePath, "utf8");
-    return JSON.parse(raw || "[]");
-  } catch {
-    return [];
-  }
-}
 
 export async function GET() {
   try {
-    const bookings = readBookings();
+    const bookings = await getAllBookings();
     const labours = LABOURS;
 
     // Calculate statistics
@@ -46,13 +33,11 @@ export async function GET() {
     });
 
     // Booking statistics
-    //@ts-ignore
-    const totalLabourBookings = bookings.reduce((sum , booking) => {
+    const totalLabourBookings = bookings.reduce((sum, booking) => {
       return sum + (booking.labours?.length || 0);
     }, 0);
 
     const taskDistribution: Record<string, number> = {};
-    //@ts-ignore
     bookings.forEach((booking) => {
       const task = booking.task || "Unknown";
       taskDistribution[task] = (taskDistribution[task] || 0) + 1;
@@ -60,7 +45,6 @@ export async function GET() {
 
     // Recent bookings (last 7 days)
     const now = new Date();
-    //@ts-ignore
     const recentBookings = bookings.filter((booking) => {
       if (!booking.booking_date) return false;
       const bookingDate = new Date(booking.booking_date);
@@ -102,4 +86,3 @@ export async function GET() {
     );
   }
 }
-

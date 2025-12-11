@@ -31,6 +31,7 @@ A comprehensive web application for managing agricultural labour bookings, built
 - Node.js 18+ 
 - pnpm (or npm/yarn)
 - TypeScript knowledge (helpful but not required)
+- Upstash Redis account (free tier available)
 
 ## 🛠️ Installation
 
@@ -49,16 +50,26 @@ A comprehensive web application for managing agricultural labour bookings, built
    yarn install
    ```
 
-3. **Run the development server**
-   ```bash
+3. **Set up Upstash Redis**
+   - Create a free account at [Upstash](https://upstash.com/)
+   - Create a new Redis database
+   - Copy your REST URL and REST Token
+   - Create a `.env.local` file in the root directory:
+     ```env
+     UPSTASH_REDIS_REST_URL=your_redis_rest_url_here
+     UPSTASH_REDIS_REST_TOKEN=your_redis_rest_token_here
+     ```
+
+4. **Run the development server**
+```bash
    pnpm dev
    # or
-   npm run dev
-   # or
-   yarn dev
+npm run dev
+# or
+yarn dev
    ```
 
-4. **Open your browser**
+5. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 📁 Project Structure
@@ -92,7 +103,7 @@ labour/
 │   │   │   └── booking-table.tsx
 │   │   └── ui/              # shadcn/ui components
 │   └── lib/                 # Utilities
-├── data/                    # Data storage (bookings.json)
+│       └── redis.ts        # Redis database utilities
 ├── public/                  # Static assets
 └── package.json
 ```
@@ -209,11 +220,21 @@ curl -X POST "http://localhost:3000/api/public/booking/delete" \
 
 ## 📊 Data Storage
 
-Bookings are stored in `data/bookings.json`. The file is automatically created if it doesn't exist.
+**Bookings**: Stored in Upstash Redis for fast, scalable access. All booking operations use Redis.
 
-Labours data is stored in the API route files:
+**Labours**: Stored in the API route files:
 - `src/app/api/labours/all/route.ts`
 - `src/app/api/labours/loc/route.ts`
+
+### Redis Setup
+
+The application uses Upstash Redis for booking storage. Make sure to:
+1. Set up your Upstash Redis database
+2. Add environment variables to `.env.local`:
+   - `UPSTASH_REDIS_REST_URL`
+   - `UPSTASH_REDIS_REST_TOKEN`
+
+The Redis client is configured in `src/lib/redis.ts` and provides helper functions for all booking operations.
 
 ## 🎨 Tech Stack
 
@@ -222,6 +243,7 @@ Labours data is stored in the API route files:
 - **UI Library**: React 19
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui (Radix UI)
+- **Database**: Upstash Redis
 - **Charts**: Recharts
 - **Forms**: React Hook Form + Zod
 - **Notifications**: Sonner
@@ -238,8 +260,15 @@ pnpm start
 
 ### Environment Variables
 
-Currently, no environment variables are required. For production, consider adding:
-- Database connection strings
+Required environment variables (create `.env.local`):
+
+```env
+# Upstash Redis Configuration
+UPSTASH_REDIS_REST_URL=your_redis_rest_url_here
+UPSTASH_REDIS_REST_TOKEN=your_redis_rest_token_here
+```
+
+For production, also consider adding:
 - Authentication secrets
 - API keys
 
@@ -300,8 +329,10 @@ This project is private and proprietary.
 ## 🐛 Troubleshooting
 
 ### Bookings not saving?
-- Check that the `data` directory exists and has write permissions
-- Verify the `bookings.json` file is valid JSON
+- Verify your Upstash Redis credentials are correct in `.env.local`
+- Check that `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set
+- Ensure your Upstash Redis database is active and accessible
+- Check browser console and server logs for Redis connection errors
 
 ### Admin login not working?
 - Verify credentials in `src/app/api/admin/login/route.ts`
