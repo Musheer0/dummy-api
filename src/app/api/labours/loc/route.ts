@@ -75,7 +75,7 @@ export async function POST(req: Request) {
 
     // Filter labours based on location (case-insensitive)
     const results = LABOURS.filter(l =>
-      l.location.toLowerCase() === loc.toLowerCase()
+      l.location.includes( loc)
     );
 
     return NextResponse.json({
