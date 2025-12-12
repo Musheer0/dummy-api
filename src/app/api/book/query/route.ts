@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     const { id, phone, body } = await getParams(req);
 
     // MODE: all
-    if (body.mode === "all") {
+    if (body.phone) {
       const bookings = await getAllBookings();
       return NextResponse.json({
         success: true,
