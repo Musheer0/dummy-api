@@ -1,10 +1,42 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { deleteBooking } from "@/lib/redis";
 
-export async function DELETE(req: Request) {
+// Shared param reader
+async function getParams(req: NextRequest) {
+  const url = new URL(req.url);
+
+  let id = url.searchParams.get("id");
+  let body: any = {};
+
   try {
-    const url = new URL(req.url);
-    const id = url.searchParams.get("id");
+    body = await req.json();
+  } catch (_) {}
+
+  id ||= body.id;
+
+  return { id };
+}
+
+// ----------------------------------
+// DELETE METHOD
+// ----------------------------------
+export async function DELETE(req: NextRequest) {
+  return handleDelete(req);
+}
+
+// ----------------------------------
+// POST METHOD (acts like DELETE)
+// ----------------------------------
+export async function POST(req: NextRequest) {
+  return handleDelete(req);
+}
+
+// ----------------------------------
+// THE ACTUAL LOGIC (shared)
+// ----------------------------------
+async function handleDelete(req: NextRequest) {
+  try {
+    const { id } = await getParams(req);
 
     if (!id) {
       return NextResponse.json(
@@ -14,6 +46,7 @@ export async function DELETE(req: Request) {
     }
 
     const deleted = await deleteBooking(id);
+
     if (!deleted) {
       return NextResponse.json(
         { success: false, message: "Booking not found or failed to delete" },
